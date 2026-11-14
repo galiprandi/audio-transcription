@@ -46,6 +46,32 @@ describe('resolveCacheDir', () => {
   it('prefers the explicit override', () => {
     expect(resolveCacheDir('/custom/dir')).toBe('/custom/dir');
   });
+
+  it('honors AUDIO_TRANSCRIPTION_CACHE env', () => {
+    const prev = process.env.AUDIO_TRANSCRIPTION_CACHE;
+    process.env.AUDIO_TRANSCRIPTION_CACHE = '/env/cache';
+    try {
+      expect(resolveCacheDir()).toBe('/env/cache');
+    } finally {
+      if (prev === undefined) delete process.env.AUDIO_TRANSCRIPTION_CACHE;
+      else process.env.AUDIO_TRANSCRIPTION_CACHE = prev;
+    }
+  });
+
+  it('honors XDG_CACHE_HOME on linux', () => {
+    if (process.platform === 'win32') return;
+    const prevXdg = process.env.XDG_CACHE_HOME;
+    const prevEnv = process.env.AUDIO_TRANSCRIPTION_CACHE;
+    delete process.env.AUDIO_TRANSCRIPTION_CACHE;
+    process.env.XDG_CACHE_HOME = '/xdg/cache';
+    try {
+      expect(resolveCacheDir()).toBe('/xdg/cache/audio-transcription');
+    } finally {
+      if (prevXdg === undefined) delete process.env.XDG_CACHE_HOME;
+      else process.env.XDG_CACHE_HOME = prevXdg;
+      if (prevEnv !== undefined) process.env.AUDIO_TRANSCRIPTION_CACHE = prevEnv;
+    }
+  });
 });
 
 describe('writeTempInput', () => {
