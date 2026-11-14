@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { cacheSubdir, resolveCacheDir } from './paths.js';
+import { findFfmpegBinary, npmInvocation } from './platform.js';
 import { withMutex } from './locks.js';
 import type { TranscribeOptions, TranscribeProgress } from './types.js';
 
@@ -31,17 +32,23 @@ export async function ensureRuntime(
   opts: TranscribeOptions,
 ): Promise<Runtime> {
   const runtimeDir = cacheSubdir(cacheDir, 'runtime');
+  const ffmpegPkgDir = join(runtimeDir, 'node_modules', 'ffmpeg-static');
   const sherpaEntry = join(runtimeDir, 'node_modules', 'sherpa-onnx-node', 'non-streaming-asr.js');
-  const ffmpegPath = join(runtimeDir, 'node_modules', 'ffmpeg-static', 'ffmpeg');
 
-  const ready = () => existsSync(sherpaEntry) && existsSync(ffmpegPath);
+  const ready = () => {
+    if (!existsSync(sherpaEntry)) return false;
+    // ffmpeg-static may not be installed yet — its dir appears only after install.
+    return existsSync(ffmpegPkgDir) && existsSync(findFfmpegBinary(ffmpegPkgDir));
+  };
   if (ready()) return loadRuntime(runtimeDir);
 
   const locksDir = cacheSubdir(cacheDir, 'locks');
   await withMutex(locksDir, 'runtime-install', opts.lockTimeoutMs ?? 10 * 60 * 1000, async () => {
     if (ready()) return;
     opts.onProgress?.({ stage: 'runtime-install', message: 'Installing speech runtime (first run only)…' });
-    await execFileAsync('npm', [
+    const npm = npmInvocation();
+    await execFileAsync(npm.cmd, [
+      ...npm.baseArgs,
       'install',
       '--prefix', runtimeDir,
       `sherpa-onnx-node@${SHERPA_ONNX_NODE_VERSION}`,
@@ -62,7 +69,7 @@ export async function ensureRuntime(
 function loadRuntime(runtimeDir: string): Runtime {
   return {
     sherpaEntry: join(runtimeDir, 'node_modules', 'sherpa-onnx-node', 'non-streaming-asr.js'),
-    ffmpegPath: join(runtimeDir, 'node_modules', 'ffmpeg-static', 'ffmpeg'),
+    ffmpegPath: findFfmpegBinary(join(runtimeDir, 'node_modules', 'ffmpeg-static')),
   };
 }
 

@@ -5,6 +5,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 import { cacheSubdir } from './paths.js';
+import { tarCommand } from './platform.js';
 import { withMutex } from './locks.js';
 import type { TranscribeOptions } from './types.js';
 
@@ -89,7 +90,7 @@ export async function ensureModel(
       await download(model.url, tarball, opts.onProgress);
 
       opts.onProgress?.({ stage: 'model-extract', message: 'Extracting speech model…' });
-      await execFileAsync('tar', ['-xf', tarball, '-C', tmpDir], { timeout: 10 * 60 * 1000 });
+      await execFileAsync(tarCommand(), ['-xf', tarball, '-C', tmpDir], { timeout: 10 * 60 * 1000 });
       rmSync(tarball, { force: true });
 
       // The tarball contains a single top-level dir; find it.
