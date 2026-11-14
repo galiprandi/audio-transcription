@@ -128,7 +128,7 @@ async function download(url: string, dest: string, onProgress?: TranscribeOption
       received += chunk.length;
       if (total > 0) {
         const pct = Math.floor((received / total) * 100);
-        if (pct !== lastPct && pct % 10 === 0) {
+        if (pct !== lastPct && pct % 25 === 0) {
           lastPct = pct;
           onProgress?.({ stage: 'model-download', message: `Downloading model… ${pct}%` });
         }
