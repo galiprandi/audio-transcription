@@ -1,6 +1,6 @@
 {
   "name": "audio-transcription",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local audio-to-text transcription for Node.js. Lazy-installs sherpa-onnx (Parakeet TDT) + ffmpeg into a shared user cache on first use. No API keys, no cloud.",
   "type": "module",
   "main": "./dist/index.js",
